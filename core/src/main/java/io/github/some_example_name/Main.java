@@ -63,6 +63,10 @@ public class Main implements ApplicationListener {
 
         bucketRectangle = new Rectangle();
         dropRectangle = new Rectangle();
+
+        music.setLooping(true);
+        music.setVolume(.5f);
+        music.play();
     }
 
     @Override
@@ -120,6 +124,7 @@ public class Main implements ApplicationListener {
           if(dropSprite.getY() < -dropHeight) dropSprites.removeIndex(i);
           else if (bucketRectangle.overlaps(dropRectangle)){
               dropSprites.removeIndex(i);
+              dropSound.play();
           }
       };
 
