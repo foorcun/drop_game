@@ -6,6 +6,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -23,6 +24,9 @@ public class Main implements ApplicationListener {
     SpriteBatch spriteBatch;
     FitViewport viewport;
 
+    Sprite bucketSprite;
+
+
     @Override
     public void create() {
         // Prepare your application here.
@@ -34,6 +38,9 @@ public class Main implements ApplicationListener {
 
         spriteBatch = new SpriteBatch();
         viewport = new FitViewport(8,5);
+
+        bucketSprite = new Sprite(bucketTexture);
+        bucketSprite.setSize(1,1);
     }
 
     @Override
@@ -60,8 +67,13 @@ public class Main implements ApplicationListener {
         spriteBatch.setProjectionMatrix(viewport.getCamera().combined);
         spriteBatch.begin();
 
-        spriteBatch.draw(bucketTexture, 0,0,1,1);
+    float worldWidth = viewport.getWorldWidth();
+    float worldHeight = viewport.getWorldHeight();
 
+        spriteBatch.draw(backgroundTexture,0,0,worldWidth,worldHeight);
+        // spriteBatch.draw(bucketTexture, 0,0,1,1);
+
+ bucketSprite.draw(spriteBatch);
 
 
 
