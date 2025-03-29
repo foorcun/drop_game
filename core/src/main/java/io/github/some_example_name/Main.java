@@ -11,9 +11,12 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import org.w3c.dom.Text;
+
+import java.util.ArrayList;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class Main implements ApplicationListener {
@@ -31,6 +34,9 @@ public class Main implements ApplicationListener {
 
     Vector2 touchPos;
 
+    Array<Sprite> dropSprites;
+
+
     @Override
     public void create() {
         // Prepare your application here.
@@ -47,6 +53,11 @@ public class Main implements ApplicationListener {
         bucketSprite.setSize(1,1);
 
         touchPos = new Vector2();
+
+        dropSprites = new Array<>();
+
+
+        createDroplet();
     }
 
     @Override
@@ -88,6 +99,12 @@ public class Main implements ApplicationListener {
         float bucketHeight = bucketSprite.getHeight();
 
         bucketSprite.setX(MathUtils.clamp(bucketSprite.getX(),0,worldWidth-bucketWidth));
+
+        float delta = Gdx.graphics.getDeltaTime();
+
+        for(Sprite dropSprite: dropSprites){
+            dropSprite.translateY(-2f * delta);
+        }
     }
     private void draw(){
         ScreenUtils.clear(Color.BLACK);
@@ -104,9 +121,28 @@ public class Main implements ApplicationListener {
 
  bucketSprite.draw(spriteBatch);
 
+        for(Sprite dropSprite: dropSprites){
+            dropSprite.draw(spriteBatch);
+        }
+
 
 
         spriteBatch.end();
+    }
+
+    private  void createDroplet(){
+        float dropWidth = 1;
+        float dropHeight = 1;
+        float worldWidth = viewport.getWorldWidth();
+        float worldHeight = viewport.getWorldHeight();
+
+        Sprite dropSprite = new Sprite(dropTexture);
+        dropSprite.setSize(dropWidth, dropHeight);
+        //dropSprite.setX(0);
+        dropSprite.setX(MathUtils.random(0f, worldWidth- dropWidth));
+        dropSprite.setY(worldHeight);
+        dropSprites.add(dropSprite);
+
     }
     @Override
     public void pause() {
