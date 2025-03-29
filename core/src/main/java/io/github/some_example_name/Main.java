@@ -36,6 +36,7 @@ public class Main implements ApplicationListener {
 
     Array<Sprite> dropSprites;
 
+    float dropTimer;
 
     @Override
     public void create() {
@@ -57,7 +58,6 @@ public class Main implements ApplicationListener {
         dropSprites = new Array<>();
 
 
-        createDroplet();
     }
 
     @Override
@@ -104,6 +104,14 @@ public class Main implements ApplicationListener {
 
         for(Sprite dropSprite: dropSprites){
             dropSprite.translateY(-2f * delta);
+        }
+
+
+        //createDroplet();
+        dropTimer += delta;
+        if(dropTimer > 1f){
+            dropTimer =0;
+            createDroplet();
         }
     }
     private void draw(){
