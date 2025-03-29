@@ -102,10 +102,15 @@ public class Main implements ApplicationListener {
 
         float delta = Gdx.graphics.getDeltaTime();
 
-        for(Sprite dropSprite: dropSprites){
-            dropSprite.translateY(-2f * delta);
-        }
+      for(int i = dropSprites.size-1;i>=0;i--){
+          Sprite dropSprite =dropSprites.get(i);
+          float dropWidth = dropSprite.getWidth();
+          float dropHeight = dropSprite.getHeight();
 
+          dropSprite.translateY((-2f*delta));
+
+          if(dropSprite.getY() < -dropHeight) dropSprites.removeIndex(i);
+      };
 
         //createDroplet();
         dropTimer += delta;
