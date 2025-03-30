@@ -15,11 +15,14 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
-import org.w3c.dom.Text;
 
-import java.util.ArrayList;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
+import org.json.JSONObject;
 
-/** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
+import java.net.URI;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 public class Main implements ApplicationListener {
 
     Texture backgroundTexture;
@@ -37,14 +40,13 @@ public class Main implements ApplicationListener {
 
     Array<Sprite> dropSprites;
 
-    float dropTimer;
-
     Rectangle bucketRectangle;
     Rectangle dropRectangle;
 
+    GameClient socket;
+
     @Override
     public void create() {
-        // Prepare your application here.
         backgroundTexture = new Texture("background.png");
         bucketTexture = new Texture("bucket.png");
         dropTexture = new Texture("drop.png");
@@ -52,13 +54,13 @@ public class Main implements ApplicationListener {
         music = Gdx.audio.newMusic(Gdx.files.internal("music.mp3"));
 
         spriteBatch = new SpriteBatch();
-        viewport = new FitViewport(8,5);
+        viewport = new FitViewport(8, 5);
 
         bucketSprite = new Sprite(bucketTexture);
-        bucketSprite.setSize(1,1);
+        bucketSprite.setSize(1, 1);
+        bucketSprite.setPosition(4 - 0.5f, 0.5f);
 
         touchPos = new Vector2();
-
         dropSprites = new Array<>();
 
         bucketRectangle = new Rectangle();
@@ -67,124 +69,117 @@ public class Main implements ApplicationListener {
         music.setLooping(true);
         music.setVolume(.5f);
         music.play();
+
+        try {
+            socket = new GameClient(new URI("ws://localhost:8080/game"), this);
+            socket.connect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void resize(int width, int height) {
-        // Resize your application here. The parameters represent the new window size.
-
-        viewport.update(width,height,true);
+        viewport.update(width, height, true);
     }
 
     @Override
     public void render() {
-        // Draw your application here.
         input();
         logic();
         draw();
     }
 
-    private  void input(){
+    private void input() {
         float speed = 4f;
         float delta = Gdx.graphics.getDeltaTime();
 
-        if(Gdx.input.isTouched()){
-            touchPos.set(Gdx.input.getX(),Gdx.input.getY());
+        if (Gdx.input.isTouched()) {
+            touchPos.set(Gdx.input.getX(), Gdx.input.getY());
             viewport.unproject(touchPos);
             bucketSprite.setCenterX(touchPos.x);
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT)){
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             bucketSprite.translateX(speed * delta);
-        }else if(Gdx.input.isKeyPressed(Input.Keys.LEFT)){
+        } else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
             bucketSprite.translateX(-speed * delta);
         }
 
+        if (socket != null && socket.isOpen()) {
+            try {
+                JSONObject message = new JSONObject();
+                message.put("type", "move");
+                message.put("x", bucketSprite.getX());
+                socket.send(message.toString());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
-    private void logic(){
+
+    private void logic() {
         float worldWidth = viewport.getWorldWidth();
-        float worldHeight = viewport.getWorldHeight();
-
         float bucketWidth = bucketSprite.getWidth();
-        float bucketHeight = bucketSprite.getHeight();
 
-        bucketSprite.setX(MathUtils.clamp(bucketSprite.getX(),0,worldWidth-bucketWidth));
+        bucketSprite.setX(MathUtils.clamp(bucketSprite.getX(), 0, worldWidth - bucketWidth));
 
         float delta = Gdx.graphics.getDeltaTime();
 
-        bucketRectangle.set(bucketSprite.getX(), bucketSprite.getY(),bucketSprite.getWidth(), bucketSprite.getHeight());
+        bucketRectangle.set(bucketSprite.getX(), bucketSprite.getY(),
+            bucketSprite.getWidth(), bucketSprite.getHeight());
 
-      for(int i = dropSprites.size-1;i>=0;i--){
-          Sprite dropSprite =dropSprites.get(i);
-          float dropWidth = dropSprite.getWidth();
-          float dropHeight = dropSprite.getHeight();
+        for (int i = dropSprites.size - 1; i >= 0; i--) {
+            Sprite dropSprite = dropSprites.get(i);
+            dropSprite.translateY(-2f * delta);
 
-          dropSprite.translateY((-2f*delta));
-          dropRectangle.set(dropSprite.getX(), dropSprite.getY(), dropSprite.getWidth(),dropSprite.getHeight());
+            dropRectangle.set(dropSprite.getX(), dropSprite.getY(),
+                dropSprite.getWidth(), dropSprite.getHeight());
 
-          if(dropSprite.getY() < -dropHeight) dropSprites.removeIndex(i);
-          else if (bucketRectangle.overlaps(dropRectangle)){
-              dropSprites.removeIndex(i);
-              dropSound.play();
-          }
-      };
-
-        //createDroplet();
-        dropTimer += delta;
-        if(dropTimer > 1f){
-            dropTimer =0;
-            createDroplet();
+            if (dropSprite.getY() < -1f) {
+                dropSprites.removeIndex(i);
+            } else if (bucketRectangle.overlaps(dropRectangle)) {
+                dropSprites.removeIndex(i);
+                dropSound.play();
+            }
         }
     }
-    private void draw(){
+
+    private void draw() {
         ScreenUtils.clear(Color.BLACK);
         viewport.apply();
-
         spriteBatch.setProjectionMatrix(viewport.getCamera().combined);
         spriteBatch.begin();
 
-    float worldWidth = viewport.getWorldWidth();
-    float worldHeight = viewport.getWorldHeight();
+        float worldWidth = viewport.getWorldWidth();
+        float worldHeight = viewport.getWorldHeight();
+        spriteBatch.draw(backgroundTexture, 0, 0, worldWidth, worldHeight);
+        bucketSprite.draw(spriteBatch);
 
-        spriteBatch.draw(backgroundTexture,0,0,worldWidth,worldHeight);
-        // spriteBatch.draw(bucketTexture, 0,0,1,1);
-
- bucketSprite.draw(spriteBatch);
-
-        for(Sprite dropSprite: dropSprites){
+        for (Sprite dropSprite : dropSprites) {
             dropSprite.draw(spriteBatch);
         }
-
-
 
         spriteBatch.end();
     }
 
-    private  void createDroplet(){
-        float dropWidth = 1;
-        float dropHeight = 1;
-        float worldWidth = viewport.getWorldWidth();
-        float worldHeight = viewport.getWorldHeight();
+    public void handleServerMessage(String message) {
+        try {
+            JSONObject json = new JSONObject(message);
+            if ("spawn".equals(json.getString("type"))) {
+                float x = (float) json.getDouble("x");
+                float y = (float) json.getDouble("y");
 
-        Sprite dropSprite = new Sprite(dropTexture);
-        dropSprite.setSize(dropWidth, dropHeight);
-        //dropSprite.setX(0);
-        dropSprite.setX(MathUtils.random(0f, worldWidth- dropWidth));
-        dropSprite.setY(worldHeight);
-        dropSprites.add(dropSprite);
-
-    }
-    @Override
-    public void pause() {
-        // Invoked when your application is paused.
+                Sprite drop = new Sprite(dropTexture);
+                drop.setSize(1, 1);
+                drop.setPosition(x, y);
+                dropSprites.add(drop);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    @Override
-    public void resume() {
-        // Invoked when your application is resumed after pause.
-    }
-
-    @Override
-    public void dispose() {
-        // Destroy application's resources here.
-    }
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void dispose() {}
 }
