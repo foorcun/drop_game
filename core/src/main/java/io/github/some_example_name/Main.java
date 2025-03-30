@@ -45,6 +45,9 @@ public class Main implements ApplicationListener {
 
     GameClient socket;
 
+    float lastSentBucketX = -1f;
+
+
     @Override
     public void create() {
         backgroundTexture = new Texture("background.png");
@@ -105,12 +108,14 @@ public class Main implements ApplicationListener {
             bucketSprite.translateX(-speed * delta);
         }
 
-        if (socket != null && socket.isOpen()) {
+        float currentX = bucketSprite.getX();
+        if (socket != null && socket.isOpen()&& currentX != lastSentBucketX) {
             try {
                 JSONObject message = new JSONObject();
                 message.put("type", "move");
-                message.put("x", bucketSprite.getX());
+                message.put("x", currentX);
                 socket.send(message.toString());
+                lastSentBucketX = currentX; // update last sent position
             } catch (Exception e) {
                 e.printStackTrace();
             }
